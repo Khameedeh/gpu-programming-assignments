@@ -1,0 +1,24 @@
+=== Test4_OneProducer ===
+Configuration: 1 producers, 2 consumers, buffer size 5, 3 items per producer
+
+=== Producer-Consumer System Started ===
+Configuration: 1 producers, 2 consumers, buffer size 5, 3 items per producer
+
+[140627597588160] Producer 1 produced 100 (buffer: 1/5)
+[140627589195456] Consumer 1 consumed 100 (buffer: 0/5)
+[140627597588160] Producer 1 produced 101 (buffer: 1/5)
+[140627580802752] Consumer 2 consumed 101 (buffer: 0/5)
+[140627597588160] Producer 1 produced 102 (buffer: 1/5)
+[140627597588160] Producer 1 finished producing items
+
+=== All producers finished. Signaling consumers... ===
+
+[140627589195456] Consumer 1 consumed 102 (buffer: 0/5)
+[140627580802752] Consumer 2 exiting gracefully
+[140627589195456] Consumer 1 exiting gracefully
+
+=== System Statistics ===
+Total items produced: 3
+Total items consumed: 3
+Maximum buffer size reached: 1/5
+All threads finished successfully.

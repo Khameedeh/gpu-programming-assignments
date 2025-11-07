@@ -1,0 +1,60 @@
+=== Test10_LargeConfig ===
+Configuration: 2 producers, 3 consumers, buffer size 15, 10 items per producer
+
+=== Producer-Consumer System Started ===
+Configuration: 2 producers, 3 consumers, buffer size 15, 10 items per producer
+
+[140468778170048] Producer 1 produced 100 (buffer: 1/15)
+[140468769777344] Producer 2 produced 200 (buffer: 2/15)
+[140468761384640] Consumer 1 consumed 100 (buffer: 1/15)
+[140468752991936] Consumer 2 consumed 200 (buffer: 0/15)
+[140468778170048] Producer 1 produced 101 (buffer: 1/15)
+[140468744599232] Consumer 3 consumed 101 (buffer: 0/15)
+[140468769777344] Producer 2 produced 201 (buffer: 1/15)
+[140468778170048] Producer 1 produced 102 (buffer: 2/15)
+[140468778170048] Producer 1 produced 103 (buffer: 3/15)
+[140468769777344] Producer 2 produced 202 (buffer: 4/15)
+[140468778170048] Producer 1 produced 104 (buffer: 5/15)
+[140468778170048] Producer 1 produced 105 (buffer: 6/15)
+[140468778170048] Producer 1 produced 106 (buffer: 7/15)
+[140468769777344] Producer 2 produced 203 (buffer: 8/15)
+[140468769777344] Producer 2 produced 204 (buffer: 9/15)
+[140468778170048] Producer 1 produced 107 (buffer: 10/15)
+[140468778170048] Producer 1 produced 108 (buffer: 11/15)
+[140468769777344] Producer 2 produced 205 (buffer: 12/15)
+[140468769777344] Producer 2 produced 206 (buffer: 13/15)
+[140468752991936] Consumer 2 consumed 201 (buffer: 12/15)
+[140468761384640] Consumer 1 consumed 102 (buffer: 11/15)
+[140468778170048] Producer 1 produced 109 (buffer: 12/15)
+[140468769777344] Producer 2 produced 207 (buffer: 13/15)
+[140468778170048] Producer 1 finished producing items
+[140468744599232] Consumer 3 consumed 103 (buffer: 12/15)
+[140468769777344] Producer 2 produced 208 (buffer: 13/15)
+[140468769777344] Producer 2 produced 209 (buffer: 14/15)
+[140468769777344] Producer 2 finished producing items
+
+=== All producers finished. Signaling consumers... ===
+
+[140468761384640] Consumer 1 consumed 202 (buffer: 13/15)
+[140468752991936] Consumer 2 consumed 104 (buffer: 12/15)
+[140468744599232] Consumer 3 consumed 105 (buffer: 11/15)
+[140468761384640] Consumer 1 consumed 106 (buffer: 10/15)
+[140468752991936] Consumer 2 consumed 203 (buffer: 9/15)
+[140468744599232] Consumer 3 consumed 204 (buffer: 8/15)
+[140468761384640] Consumer 1 consumed 107 (buffer: 7/15)
+[140468744599232] Consumer 3 consumed 108 (buffer: 6/15)
+[140468752991936] Consumer 2 consumed 205 (buffer: 5/15)
+[140468761384640] Consumer 1 consumed 206 (buffer: 4/15)
+[140468744599232] Consumer 3 consumed 109 (buffer: 3/15)
+[140468752991936] Consumer 2 consumed 207 (buffer: 2/15)
+[140468761384640] Consumer 1 consumed 208 (buffer: 1/15)
+[140468744599232] Consumer 3 consumed 209 (buffer: 0/15)
+[140468752991936] Consumer 2 exiting gracefully
+[140468744599232] Consumer 3 exiting gracefully
+[140468761384640] Consumer 1 exiting gracefully
+
+=== System Statistics ===
+Total items produced: 20
+Total items consumed: 20
+Maximum buffer size reached: 14/15
+All threads finished successfully.

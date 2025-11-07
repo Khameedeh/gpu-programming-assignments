@@ -1,0 +1,40 @@
+=== Test2_LargerBuffer ===
+Configuration: 2 producers, 3 consumers, buffer size 10, 5 items per producer
+
+=== Producer-Consumer System Started ===
+Configuration: 2 producers, 3 consumers, buffer size 10, 5 items per producer
+
+[140366774793920] Producer 1 produced 100 (buffer: 1/10)
+[140366766401216] Producer 2 produced 200 (buffer: 2/10)
+[140366758008512] Consumer 1 consumed 100 (buffer: 1/10)
+[140366749615808] Consumer 2 consumed 200 (buffer: 0/10)
+[140366774793920] Producer 1 produced 101 (buffer: 1/10)
+[140366741223104] Consumer 3 consumed 101 (buffer: 0/10)
+[140366766401216] Producer 2 produced 201 (buffer: 1/10)
+[140366774793920] Producer 1 produced 102 (buffer: 2/10)
+[140366766401216] Producer 2 produced 202 (buffer: 3/10)
+[140366774793920] Producer 1 produced 103 (buffer: 4/10)
+[140366774793920] Producer 1 produced 104 (buffer: 5/10)
+[140366766401216] Producer 2 produced 203 (buffer: 6/10)
+[140366774793920] Producer 1 finished producing items
+[140366766401216] Producer 2 produced 204 (buffer: 7/10)
+[140366758008512] Consumer 1 consumed 201 (buffer: 6/10)
+[140366741223104] Consumer 3 consumed 102 (buffer: 5/10)
+[140366749615808] Consumer 2 consumed 202 (buffer: 4/10)
+[140366766401216] Producer 2 finished producing items
+
+=== All producers finished. Signaling consumers... ===
+
+[140366741223104] Consumer 3 consumed 103 (buffer: 3/10)
+[140366758008512] Consumer 1 consumed 104 (buffer: 2/10)
+[140366749615808] Consumer 2 consumed 203 (buffer: 1/10)
+[140366758008512] Consumer 1 consumed 204 (buffer: 0/10)
+[140366741223104] Consumer 3 exiting gracefully
+[140366749615808] Consumer 2 exiting gracefully
+[140366758008512] Consumer 1 exiting gracefully
+
+=== System Statistics ===
+Total items produced: 10
+Total items consumed: 10
+Maximum buffer size reached: 7/10
+All threads finished successfully.

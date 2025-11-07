@@ -1,0 +1,53 @@
+=== Test7_ManyProducersFewerConsumers ===
+Configuration: 4 producers, 2 consumers, buffer size 8, 4 items per producer
+
+=== Producer-Consumer System Started ===
+Configuration: 4 producers, 2 consumers, buffer size 8, 4 items per producer
+
+[139649901131456] Producer 1 produced 100 (buffer: 1/8)
+[139649892738752] Producer 2 produced 200 (buffer: 2/8)
+[139649884346048] Producer 3 produced 300 (buffer: 3/8)
+[139649875953344] Producer 4 produced 400 (buffer: 4/8)
+[139649867560640] Consumer 1 consumed 100 (buffer: 3/8)
+[139649859167936] Consumer 2 consumed 200 (buffer: 2/8)
+[139649901131456] Producer 1 produced 101 (buffer: 3/8)
+[139649875953344] Producer 4 produced 401 (buffer: 4/8)
+[139649901131456] Producer 1 produced 102 (buffer: 5/8)
+[139649884346048] Producer 3 produced 301 (buffer: 6/8)
+[139649892738752] Producer 2 produced 201 (buffer: 7/8)
+[139649875953344] Producer 4 produced 402 (buffer: 8/8)
+[139649859167936] Consumer 2 consumed 300 (buffer: 7/8)
+[139649884346048] Producer 3 produced 302 (buffer: 8/8)
+[139649867560640] Consumer 1 consumed 400 (buffer: 7/8)
+[139649875953344] Producer 4 produced 403 (buffer: 8/8)
+[139649875953344] Producer 4 finished producing items
+[139649867560640] Consumer 1 consumed 101 (buffer: 7/8)
+[139649892738752] Producer 2 produced 202 (buffer: 8/8)
+[139649859167936] Consumer 2 consumed 401 (buffer: 7/8)
+[139649901131456] Producer 1 produced 103 (buffer: 8/8)
+[139649901131456] Producer 1 finished producing items
+[139649867560640] Consumer 1 consumed 102 (buffer: 7/8)
+[139649892738752] Producer 2 produced 203 (buffer: 8/8)
+[139649892738752] Producer 2 finished producing items
+[139649859167936] Consumer 2 consumed 301 (buffer: 7/8)
+[139649884346048] Producer 3 produced 303 (buffer: 8/8)
+[139649884346048] Producer 3 finished producing items
+
+=== All producers finished. Signaling consumers... ===
+
+[139649867560640] Consumer 1 consumed 201 (buffer: 7/8)
+[139649859167936] Consumer 2 consumed 402 (buffer: 6/8)
+[139649859167936] Consumer 2 consumed 302 (buffer: 5/8)
+[139649867560640] Consumer 1 consumed 403 (buffer: 4/8)
+[139649859167936] Consumer 2 consumed 202 (buffer: 3/8)
+[139649867560640] Consumer 1 consumed 103 (buffer: 2/8)
+[139649859167936] Consumer 2 consumed 203 (buffer: 1/8)
+[139649867560640] Consumer 1 consumed 303 (buffer: 0/8)
+[139649867560640] Consumer 1 exiting gracefully
+[139649859167936] Consumer 2 exiting gracefully
+
+=== System Statistics ===
+Total items produced: 16
+Total items consumed: 16
+Maximum buffer size reached: 8/8
+All threads finished successfully.

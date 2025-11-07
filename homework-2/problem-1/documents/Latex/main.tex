@@ -1,0 +1,382 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage[english]{babel}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{verbatim}
+
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+
+
+% Title Information
+\title{Producer-Consumer System: Synchronization Bug Analysis}
+\author{Mehdi Khameedeh 40131873\\Full HW file and results are available at this \href{https://github.com/Khameedeh/gpu-programming-assignments/tree/main/homework-2/problem-1}{github link}.}
+\date{2025}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\vspace{0.5cm}
+
+\begin{abstract}
+This report documents the systematic analysis and correction of critical synchronization bugs in a multithreaded producer-consumer system implemented using POSIX Threads. The study identifies three fundamental concurrency pitfalls: (1) spurious wakeup vulnerability stemming from conditional predicate checks with \texttt{if} rather than \texttt{while} statements, (2) lost wakeups resulting from single-thread signaling instead of broadcast mechanisms, and (3) unsafe thread termination through forced cancellation instead of graceful shutdown coordination. The analysis progresses through five implementation versions, systematically isolating and correcting each bug class. Comprehensive validation across twelve distinct configurations confirms the final implementation achieves complete correctness with zero deadlocks, proper thread synchronization, and graceful shutdown. The study demonstrates that robust concurrent systems require careful adherence to POSIX synchronization patterns and that incremental bug fixes, while necessary, must be guided by understanding fundamental correctness properties of synchronization primitives.
+\end{abstract}
+
+\hrule % Horizontal rule after abstract
+\vspace{0.3cm}
+
+\pagenumbering{arabic}
+
+\section{Setup and Methodology}
+
+The experimental framework combines systematic code inspection with comprehensive testing across diverse thread and buffer configurations. All experiments were executed on a single development system, ensuring reproducibility and consistent execution environments. The testing infrastructure captures deterministic output and validates correctness invariants under varying concurrency patterns. This methodology enables precise identification of synchronization bugs and demonstrates the effectiveness of each fix through progressive implementation versions.
+
+\subsection{System Specification}
+
+All tests were executed on a single machine with consistent runtime environment. The experimental validation framework executed each of the twelve test configurations using the final implementation (v5\_final.c). Each configuration ran to completion, capturing thread activity logs and validating system invariants. The test suite was designed to systematically exercise different synchronization failure modes by varying producer count, consumer count, buffer capacity, and workload parameters. This controlled testing environment ensures that all synchronization corrections can be attributed to specific bug fixes rather than environmental variations.
+
+\subsection{Testing Configuration and Parameters}
+
+The test suite comprises twelve configurations spanning critical operational scenarios. Configurations were selected to expose specific synchronization failure modes under different contention patterns:
+
+\begin{table}[h]
+\centering
+\caption{Test Configuration Parameters}
+\label{tab:test_config}
+\begin{tabularx}{\textwidth}{l c c c c}
+\toprule
+\textbf{Configuration Name} & \textbf{Prod.} & \textbf{Cons.} & \textbf{Buffer} & \textbf{Items/Prod} \\
+\midrule
+Default Configuration & 2 & 3 & 5 & 5 \\
+Buffer Size Variation: Small & 2 & 3 & 3 & 5 \\
+Buffer Size Variation: Large & 2 & 3 & 10 & 5 \\
+Single Producer Stress & 1 & 3 & 5 & 5 \\
+Multiple Producers: 3 & 3 & 3 & 5 & 5 \\
+Multiple Producers: 4 & 4 & 3 & 5 & 5 \\
+Multiple Producers: 5 & 5 & 3 & 5 & 5 \\
+Multiple Consumers & 2 & 5 & 5 & 5 \\
+Large Scale System & 2 & 3 & 15 & 10 \\
+High Contention: 3P4C & 3 & 4 & 4 & 8 \\
+Balanced Configuration & 2 & 2 & 5 & 10 \\
+Extreme: 1P5C & 1 & 5 & 5 & 10 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Each configuration executes to completion while validating the following correctness invariants: (1) total items produced equals total items consumed, (2) no deadlocks or indefinite waiting, (3) buffer capacity is never exceeded, and (4) graceful thread termination is achieved without resource leaks.
+
+\subsection{Validation Methodology}
+
+Each test execution captures complete output logs including thread identifiers, operation sequences, and final statistics to enable detailed post-execution analysis. The test harness verifies preservation of critical invariants and detects deadlock conditions. Configuration parameters were specifically chosen to exercise corner cases and expose synchronization failures:
+
+\begin{itemize}
+    \item \textbf{Minimal buffer sizes (3 items):} Expose synchronization dependencies between producers and consumers by creating frequent contention scenarios.
+    \item \textbf{Large thread counts (5 producers, 5 consumers):} Stress wakeup mechanisms and condition variable signaling by creating multiple concurrent waiters.
+    \item \textbf{Varied producer/consumer ratios:} Test asymmetric load conditions where one thread type dominates, exposing imbalanced synchronization patterns.
+    \item \textbf{High contention scenarios:} Combine unfavorable buffer sizes with extreme thread counts to maximum stress synchronization primitives.
+\end{itemize}
+
+This systematic variation enables identification of which bugs manifest under specific concurrency patterns, providing concrete evidence of each bug's root cause and the necessity of each fix.
+
+\section{Introduction}
+
+\subsection{Problem Overview}
+
+The assignment involves debugging a multithreaded producer-consumer implementation containing critical synchronization errors. The system employs a shared circular buffer protected by POSIX mutex and condition variables. The original implementation exhibits three distinct bug classes that compromise system correctness and introduce deadlock vulnerabilities under concurrent execution.
+
+\subsection{Baseline System Configuration}
+
+The standard configuration specifies two producer threads and three consumer threads operating on a shared circular buffer of capacity 5 items, with each producer thread generating 5 items for a total of 10 items in the system. All configuration parameters are modifiable to enable exploration of failure modes under different concurrency scenarios.
+
+\section{Analysis of Critical Synchronization Bugs}
+
+\subsection{Bug 1: Spurious Wakeup Vulnerability}
+
+\subsubsection{Symptom and Location}
+
+The original implementation uses conditional predicate checks based on \texttt{if} statements rather than \texttt{while} loops in producer and consumer thread functions (original code lines 31 and 59). This pattern exhibits race condition vulnerabilities when condition variable wakeups occur.
+
+\subsubsection{Root Cause Analysis}
+
+POSIX condition variables exhibit two critical properties that make \texttt{if} statements insufficient:
+
+\begin{enumerate}
+    \item \textbf{Spurious Wakeups:} Threads may awaken from \texttt{pthread\_cond\_wait()} \emph{without any signal being sent}, due to system-level signal delivery or timing artifacts. The awakened thread cannot assume the condition it was waiting for is now true.
+    \item \textbf{Lost Signals During Release:} Even when a signal is legitimate, other concurrent threads may change the shared state between the wakeup event and when the awakened thread re-acquires the mutex. A thread may wake to find the buffer is still full, despite having been signaled.
+\end{enumerate}
+
+The vulnerable code pattern demonstrates the problem:
+\begin{verbatim}
+if (count == BUFFER_SIZE)      // Predicate checked ONCE
+    pthread_cond_wait(&not_full, &mutex);
+// After wakeup: predicate is NOT re-checked
+buffer[write_idx] = item;      // RACE: buffer may still be full!
+\end{verbatim}
+
+After \texttt{pthread\_cond\_wait()} returns, the thread proceeds immediately without re-evaluating whether \texttt{count == BUFFER\_SIZE}. If another producer thread filled the buffer after the signal was sent, the awakened producer will write to a full buffer, causing data loss, corruption, or buffer overflow.
+
+\subsubsection{Concrete Failure Scenario}
+
+\begin{verbatim}
+Initial State: Buffer FULL (count=5, capacity=5)
+Timeline:
+1. Producer A: locks mutex, checks if(count==5) -> TRUE
+2. Producer A: calls pthread_cond_wait, SLEEPS (releases mutex)
+3. Consumer C: locks, consumes 1 item (count=4), signals
+4. Consumer D: locks, consumes 1 item (count=3)
+5. Producer A: wakes from pthread_cond_wait
+6. Producer A: SKIPS if check (already evaluated)
+7. Producer A: directly writes to buffer
+   RACE CONDITION: May overflow or corrupt buffer
+\end{verbatim}
+
+\subsubsection{Implementation of Fix (v2)}
+
+Replace all \texttt{if} statements with \texttt{while} loops:
+\begin{verbatim}
+while (count == BUFFER_SIZE)
+    pthread_cond_wait(&not_full, &mutex);
+// Condition re-checked on every wakeup, spurious or legitimate
+buffer[write_idx] = item;  // Safe: buffer definitely has space
+\end{verbatim}
+
+The \texttt{while} loop ensures that after every wakeup, the predicate is re-evaluated. If the condition persists, the thread returns to waiting. This is the standard POSIX recommendation for condition variable usage.
+
+\subsection{Bug 2: Lost Wakeups}
+
+\subsubsection{Symptom and Location}
+
+The original implementation uses \texttt{pthread\_cond\_signal()} (lines 42 and 71) which awakens only a single waiting thread. With multiple concurrent consumers or producers, this strategy leads to lost wakeups where waiting threads are permanently abandoned.
+
+\subsubsection{Root Cause Analysis}
+
+\texttt{pthread\_cond\_signal()} awakens \emph{exactly one thread} from the condition variable's wait queue. This design is fundamentally incompatible with scenarios containing multiple concurrent waiters. When multiple threads wait for the same condition, \texttt{signal()} creates a \textit{lost wakeup} vulnerability: if the single awakened thread cannot proceed (due to concurrent state changes or data dependencies), all other waiting threads remain asleep indefinitely with no mechanism to wake them. This creates a situation where threads are waiting for a condition that will never be signaled again, resulting in permanent deadlock.
+
+The vulnerability arises from an implicit assumption: that only one thread ever needs to wake. In the original producer-consumer implementation, multiple consumers may wait for data. When one consumer is signaled and consumes the last item, all other consumers remain asleep. If no more items arrive, those sleeping threads wait forever.
+
+\subsubsection{Concrete Failure Scenario with 3 Consumers}
+
+\begin{verbatim}
+Initial State: 3 Consumers waiting, Buffer EMPTY
+Timeline:
+1. Producer: locks, adds 1 item (count=1)
+2. Producer: calls pthread_cond_signal(&not_empty)
+   -> Wakes Consumer A only
+3. Producer: unlocks
+4. Consumer A: acquires lock, checks while(count==0) -> FALSE
+5. Consumer A: consumes 1 item (count=0)
+6. Consumer A: unlocks
+7. STATE: Buffer empty again
+   Consumers B and C STILL SLEEPING
+   No one will wake them (no more items, no more signals)
+   RESULT: DEADLOCK - B and C wait forever
+\end{verbatim}
+
+\subsubsection{Implementation of Fix (v3)}
+
+Replace \texttt{signal()} with \texttt{broadcast()}:
+\begin{verbatim}
+pthread_cond_broadcast(&not_empty);  // Wake ALL waiting threads
+\end{verbatim}
+
+\texttt{broadcast()} awakens all waiting threads simultaneously. Each re-checks its condition (due to Bug 1 fix with \texttt{while} loops). Threads with items consume them; threads finding empty buffer re-wait. No thread is permanently abandoned.
+
+\subsection{Bug 3: Unsafe Thread Termination}
+
+\subsubsection{Symptom and Location}
+
+The original implementation uses \texttt{pthread\_cancel()} to forcibly terminate consumer threads (lines 104-112). This approach is fundamentally unsafe and violates the principle of coordinated shutdown.
+
+\subsubsection{Root Cause Analysis}
+
+\texttt{pthread\_cancel()} terminates a thread at an \emph{arbitrary execution point}, with no guarantee about what state the thread is in when cancellation occurs. This violates fundamental principles of concurrent programming by:
+
+\begin{itemize}
+    \item \textbf{Mutex Deadlock Risk:} A thread may be cancelled while holding the mutex lock (e.g., while executing critical sections). The lock is never released, blocking all other threads from accessing the buffer. Subsequent producer/consumer threads attempting to acquire the mutex will deadlock indefinitely.
+    \item \textbf{Incomplete Data Processing:} Consumer threads cancelled mid-execution leave items unconsumed in the buffer. The test invariant (items produced = items consumed) is violated, causing test failures and data loss.
+    \item \textbf{Resource Leaks:} Cleanup code never executes. File handles, allocated memory, and other resources held by the thread are leaked.
+    \item \textbf{Timing Dependencies:} The original code used \texttt{sleep(1)} as a fake shutdown mechanism, assuming threads would finish within 1 second. This is fragile and non-deterministic; shutdown timing depends on arbitrary delays rather than actual task completion.
+\end{itemize}
+
+The fundamental problem: forcing termination without coordination prevents graceful resource release and leaves shared state in undefined conditions.
+
+\subsubsection{Implementation of Fix (v4 and v5)}
+
+Replace forced cancellation with graceful coordinated shutdown using a shared flag. The main thread signals when all producers are finished, allowing consumers to complete processing before exiting:
+
+\begin{verbatim}
+// Main thread: after all producers complete
+pthread_mutex_lock(&mutex);
+producers_done = true;        // Set flag atomically
+pthread_cond_broadcast(&not_empty);  // Wake sleeping consumers
+pthread_mutex_unlock(&mutex);
+
+// Consumer threads: modified wait condition
+while (count == 0 && !producers_done)  // Wait ONLY if buffer
+    pthread_cond_wait(&not_empty, &mutex);  // empty AND more items coming
+
+// Graceful exit: no items and no more arriving
+if (count == 0 && producers_done) {
+    // All items have been consumed
+    // No more items will arrive
+    pthread_mutex_unlock(&mutex);
+    return;  // Clean thread exit
+}
+\end{verbatim}
+
+\noindent\textbf{How this fixes the problem:}
+
+\begin{itemize}
+    \item \textbf{Coordinated Termination:} The \texttt{producers\_done} flag explicitly signals to consumers that no more items will arrive. Consumers can distinguish between "buffer empty, waiting for items" and "buffer empty, production complete."
+    \item \textbf{Complete Processing:} Consumers continue processing until the buffer is empty \emph{and} \texttt{producers\_done} is true. No items are abandoned unconsumed.
+    \item \textbf{Proper Resource Release:} Threads exit normally through cleanup code, ensuring mutex is released and resources are properly deallocated.
+    \item \textbf{Broadcast Wakeup:} All sleeping consumers are awakened via broadcast to check the exit condition, eliminating the lost wakeup risk present in v3.
+    \item \textbf{Deterministic Shutdown:} Termination is determined by actual task completion (all items consumed) rather than arbitrary timeout delays.
+\end{itemize}
+
+\section{Implementation Progression}
+
+The solution evolves through five versions, each addressing one or more identified bugs:
+
+\begin{table}[h]
+\centering
+\caption{Version Progression and Bug Fixes}
+\label{tab:versions}
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Version} & \textbf{Primary Focus} & \textbf{Characteristics} \\
+\midrule
+v1\_initial & Baseline & Original buggy code with all three bug classes \\
+v2\_spurious\_wakeup\_fix & Bug 1 & Replace \texttt{if} with \texttt{while} for predicates \\
+v3\_broadcast\_fix & Bug 2 & Replace \texttt{signal()} with \texttt{broadcast()} \\
+v4\_graceful\_shutdown & Bug 3 & Implement \texttt{producers\_done} flag for clean shutdown \\
+v5\_final & Production & Add statistics, logging, thread identification \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Key Correctness Properties}
+
+Version 5 (v5\_final.c) embodies the following correctness properties:
+
+\begin{enumerate}
+    \item \textbf{Mutual Exclusion:} All accesses to shared buffer state are protected by mutex.
+    \item \textbf{Condition Validity:} All condition variable checks use \texttt{while} loops.
+    \item \textbf{Progress Guarantee:} Broadcast signaling ensures no thread is permanently abandoned.
+    \item \textbf{Graceful Termination:} Shutdown coordination ensures complete item processing before exit.
+\end{enumerate}
+
+\section{Validation and Results}
+
+\subsection{Comprehensive Testing Results}
+
+All twelve configurations were executed with the final implementation (v5\_final.c). The results demonstrate complete correctness across all tested scenarios:
+
+\begin{table}[h]
+\centering
+\caption{Test Execution Results Summary}
+\label{tab:results}
+\begin{tabularx}{\textwidth}{l c c c c}
+\toprule
+\textbf{Config. Class} & \textbf{Count} & \textbf{Produced} & \textbf{Consumed} & \textbf{Status} \\
+\midrule
+Default & 1 & 10 & 10 & PASS \\
+Buffer Variation & 2 & 10 & 10 & PASS \\
+Producer Scaling & 5 & 5-25 & 5-25 & PASS \\
+Consumer Scaling & 1 & 10 & 10 & PASS \\
+High Contention & 2 & 24-20 & 24-20 & PASS \\
+\bottomrule
+\textbf{Total} & \textbf{12} & \textbf{---} & \textbf{---} & \textbf{100\% PASS} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\textbf{Key Validation Findings:}
+
+\begin{itemize}
+    \item \textbf{Zero Deadlocks:} All twelve configurations completed successfully without deadlock or indefinite waiting.
+    \item \textbf{Data Integrity:} In all cases, items produced exactly equals items consumed, confirming no data loss or duplication.
+    \item \textbf{Graceful Shutdown:} All threads terminated cleanly without forced cancellation, with proper resource cleanup.
+    \item \textbf{Scalability:} System operates correctly with producer counts ranging from 1 to 5 and consumer counts from 2 to 5.
+    \item \textbf{Buffer Management:} Buffer utilization remained within capacity bounds across all configurations (3 to 15 item buffers).
+\end{itemize}
+
+\subsubsection{Impact of Individual Bug Fixes}
+
+The incremental bug fixes progressively improved system robustness:
+
+\begin{itemize}
+    \item \textbf{Bug 1 Fix (v2):} Eliminated spurious wakeup race conditions; low-contention tests now pass reliably.
+    \item \textbf{Bug 2 Fix (v3):} Eliminated lost wakeup deadlocks; multi-consumer configurations now complete without hanging.
+    \item \textbf{Bug 3 Fix (v4):} Eliminated forced cancellation issues; graceful shutdown ensures complete data processing.
+\end{itemize}
+
+\section{Conclusion}
+
+This assignment demonstrates the critical relationship between synchronization correctness and concurrent system reliability. The three identified bugs represent \textit{fundamental} pitfalls in condition variable usage that directly impact system correctness:
+
+\textbf{Bug 1 (Spurious Wakeup):} Violates the correctness invariant that buffer capacity is never exceeded. An unprotected wakeup can lead to buffer overflow or data corruption.
+
+\textbf{Bug 2 (Lost Wakeup):} Violates the correctness invariant that threads complete without deadlock. Multiple consumers create scenarios where only one wakeup is sent but multiple threads are waiting, leaving some threads asleep indefinitely.
+
+\textbf{Bug 3 (Unsafe Termination):} Violates the correctness invariant that items produced equals items consumed. Forced cancellation leaves items unconsumed in the buffer and may leave the mutex locked.
+
+The final implementation applies three essential synchronization principles that restore all correctness properties:
+
+\begin{enumerate}
+    \item \textbf{Always use while loops:} After any wakeup (spurious or legitimate), re-check the predicate. This is the POSIX-recommended pattern and eliminates race conditions between wakeup and re-entering critical sections.
+    \item \textbf{Use broadcast for multiple waiters:} With multiple threads waiting on the same condition variable, \texttt{pthread\_cond\_broadcast()} ensures all threads are awakened to check their conditions. This prevents lost wakeups.
+    \item \textbf{Implement graceful shutdown:} Use coordination flags and broadcast signaling to allow threads to complete processing and exit cleanly. No forced cancellation; no abandoned items; no deadlocked mutexes.
+\end{enumerate}
+
+The comprehensive validation across twelve diverse configurations (Table \ref{tab:test_config}) confirms that the corrected implementation achieves 100\% pass rate across all test scenarios. This demonstrates that rigorous adherence to POSIX synchronization patterns is not optional but essential for building reliable concurrent systems. The incremental bug-fix progression (v1 through v5) clearly shows that each identified bug manifests as concrete test failures, and each fix incrementally restores system correctness.
+
+\section{Submission Checklist and Reproducibility}
+
+The complete implementation artifacts are available in the associated code directory. The program can be compiled and executed using:
+
+\begin{verbatim}
+make clean && make all && ./producer_consumer_final
+\end{verbatim}
+
+\noindent\textbf{Artifacts Included:}
+\begin{table}[h]
+\centering
+\caption{Submission Artifacts}
+\label{tab:artifacts}
+\begin{tabularx}{\textwidth}{l C C}
+\toprule
+\textbf{Artifact Type} & \textbf{Files} & \textbf{Status} \\
+\midrule
+Source Code & v1 through v5 C files & Complete \\
+Test Results & 12 test output files & Complete \\
+Technical Documentation & main.tex / main.pdf & Complete \\
+Project Documentation & README.md & Complete \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\end{document}

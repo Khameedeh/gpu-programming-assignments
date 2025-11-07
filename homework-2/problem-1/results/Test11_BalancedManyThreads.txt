@@ -1,0 +1,65 @@
+=== Test11_BalancedManyThreads ===
+Configuration: 5 producers, 5 consumers, buffer size 7, 4 items per producer
+
+=== Producer-Consumer System Started ===
+Configuration: 5 producers, 5 consumers, buffer size 7, 4 items per producer
+
+[140203199035072] Producer 1 produced 100 (buffer: 1/7)
+[140203190642368] Producer 2 produced 200 (buffer: 2/7)
+[140203182249664] Producer 3 produced 300 (buffer: 3/7)
+[140203173856960] Producer 4 produced 400 (buffer: 4/7)
+[140203165464256] Producer 5 produced 500 (buffer: 5/7)
+[140203148678848] Consumer 2 consumed 100 (buffer: 4/7)
+[140203157071552] Consumer 1 consumed 200 (buffer: 3/7)
+[140203140286144] Consumer 3 consumed 300 (buffer: 2/7)
+[140203131893440] Consumer 4 consumed 400 (buffer: 1/7)
+[140203123500736] Consumer 5 consumed 500 (buffer: 0/7)
+[140203173856960] Producer 4 produced 401 (buffer: 1/7)
+[140203173856960] Producer 4 produced 402 (buffer: 2/7)
+[140203199035072] Producer 1 produced 101 (buffer: 3/7)
+[140203199035072] Producer 1 produced 102 (buffer: 4/7)
+[140203190642368] Producer 2 produced 201 (buffer: 5/7)
+[140203190642368] Producer 2 produced 202 (buffer: 6/7)
+[140203165464256] Producer 5 produced 501 (buffer: 7/7)
+[140203123500736] Consumer 5 consumed 401 (buffer: 6/7)
+[140203182249664] Producer 3 produced 301 (buffer: 7/7)
+[140203131893440] Consumer 4 consumed 402 (buffer: 6/7)
+[140203173856960] Producer 4 produced 403 (buffer: 7/7)
+[140203173856960] Producer 4 finished producing items
+[140203140286144] Consumer 3 consumed 101 (buffer: 6/7)
+[140203199035072] Producer 1 produced 103 (buffer: 7/7)
+[140203157071552] Consumer 1 consumed 102 (buffer: 6/7)
+[140203190642368] Producer 2 produced 203 (buffer: 7/7)
+[140203148678848] Consumer 2 consumed 201 (buffer: 6/7)
+[140203165464256] Producer 5 produced 502 (buffer: 7/7)
+[140203199035072] Producer 1 finished producing items
+[140203190642368] Producer 2 finished producing items
+[140203131893440] Consumer 4 consumed 202 (buffer: 6/7)
+[140203165464256] Producer 5 produced 503 (buffer: 7/7)
+[140203123500736] Consumer 5 consumed 501 (buffer: 6/7)
+[140203182249664] Producer 3 produced 302 (buffer: 7/7)
+[140203165464256] Producer 5 finished producing items
+[140203140286144] Consumer 3 consumed 301 (buffer: 6/7)
+[140203182249664] Producer 3 produced 303 (buffer: 7/7)
+[140203157071552] Consumer 1 consumed 403 (buffer: 6/7)
+[140203182249664] Producer 3 finished producing items
+
+=== All producers finished. Signaling consumers... ===
+
+[140203148678848] Consumer 2 consumed 103 (buffer: 5/7)
+[140203131893440] Consumer 4 consumed 203 (buffer: 4/7)
+[140203123500736] Consumer 5 consumed 502 (buffer: 3/7)
+[140203140286144] Consumer 3 consumed 503 (buffer: 2/7)
+[140203157071552] Consumer 1 consumed 302 (buffer: 1/7)
+[140203148678848] Consumer 2 consumed 303 (buffer: 0/7)
+[140203140286144] Consumer 3 exiting gracefully
+[140203148678848] Consumer 2 exiting gracefully
+[140203131893440] Consumer 4 exiting gracefully
+[140203123500736] Consumer 5 exiting gracefully
+[140203157071552] Consumer 1 exiting gracefully
+
+=== System Statistics ===
+Total items produced: 20
+Total items consumed: 20
+Maximum buffer size reached: 7/7
+All threads finished successfully.

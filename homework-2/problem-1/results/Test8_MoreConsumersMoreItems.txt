@@ -1,0 +1,45 @@
+=== Test8_MoreConsumersMoreItems ===
+Configuration: 2 producers, 4 consumers, buffer size 6, 6 items per producer
+
+=== Producer-Consumer System Started ===
+Configuration: 2 producers, 4 consumers, buffer size 6, 6 items per producer
+
+[139675123578560] Producer 1 produced 100 (buffer: 1/6)
+[139675115185856] Producer 2 produced 200 (buffer: 2/6)
+[139675106793152] Consumer 1 consumed 100 (buffer: 1/6)
+[139675098400448] Consumer 2 consumed 200 (buffer: 0/6)
+[139675115185856] Producer 2 produced 201 (buffer: 1/6)
+[139675090007744] Consumer 3 consumed 201 (buffer: 0/6)
+[139675123578560] Producer 1 produced 101 (buffer: 1/6)
+[139675081615040] Consumer 4 consumed 101 (buffer: 0/6)
+[139675123578560] Producer 1 produced 102 (buffer: 1/6)
+[139675115185856] Producer 2 produced 202 (buffer: 2/6)
+[139675115185856] Producer 2 produced 203 (buffer: 3/6)
+[139675123578560] Producer 1 produced 103 (buffer: 4/6)
+[139675123578560] Producer 1 produced 104 (buffer: 5/6)
+[139675123578560] Producer 1 produced 105 (buffer: 6/6)
+[139675123578560] Producer 1 finished producing items
+[139675090007744] Consumer 3 consumed 102 (buffer: 5/6)
+[139675115185856] Producer 2 produced 204 (buffer: 6/6)
+[139675106793152] Consumer 1 consumed 202 (buffer: 5/6)
+[139675115185856] Producer 2 produced 205 (buffer: 6/6)
+[139675098400448] Consumer 2 consumed 203 (buffer: 5/6)
+[139675115185856] Producer 2 finished producing items
+
+=== All producers finished. Signaling consumers... ===
+
+[139675081615040] Consumer 4 consumed 103 (buffer: 4/6)
+[139675090007744] Consumer 3 consumed 104 (buffer: 3/6)
+[139675106793152] Consumer 1 consumed 105 (buffer: 2/6)
+[139675098400448] Consumer 2 consumed 204 (buffer: 1/6)
+[139675081615040] Consumer 4 consumed 205 (buffer: 0/6)
+[139675090007744] Consumer 3 exiting gracefully
+[139675106793152] Consumer 1 exiting gracefully
+[139675098400448] Consumer 2 exiting gracefully
+[139675081615040] Consumer 4 exiting gracefully
+
+=== System Statistics ===
+Total items produced: 12
+Total items consumed: 12
+Maximum buffer size reached: 6/6
+All threads finished successfully.
