@@ -1,0 +1,126 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage[english]{babel}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{verbatim}
+
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+
+
+% Title Information
+\title{Matrix Multiplication Profiling and Analysis}
+\author{Mehdi Khameedeh 40131873\\Full HW file and individual results are available at this \href{https://github.com/Khameedeh/GPU-programming-Fall2025/tree/main/homeworks/homework-1/problem-2}{\textcolor{blue}{github link}}.
+}
+\date{October 2025}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\vspace{0.5cm} % Add spacing for consistency
+
+\begin{abstract}
+This report presents a detailed academic profiling and analysis of a matrix multiplication kernel, investigating the critical factors of \textbf{resource boundness} and \textbf{memory access patterns}.
+The analysis, conducted using \textbf{\texttt{perf}} and \textbf{\texttt{gprof}}, confirms the baseline program as \textbf{CPU-bound} due to its $O(N^3)$ computational complexity and high IPC of $\approx 3.82$.
+Task 2 implemented a file I/O modification, which, while having a negligible runtime, caused the IPC to drop to $\approx 1.14$, demonstrating the metric signature of an \textbf{I/O-bound} workload where the CPU stalls waiting for I/O operations.
+Task 3 profiled three loop orders (\texttt{ijk}, \texttt{ikj}, \texttt{jik}) and demonstrated the superior performance of the \textbf{\texttt{ikj} configuration}.
+This is quantitatively linked to minimizing \textbf{L1 Data Cache Load Misses} (e.g., $73.5$ million for \texttt{ikj} vs. $1,077.5$ million for \texttt{ijk} at $N=1000$) and maximizing the **Instructions Per Cycle (IPC)** metric ($4.06$), underscoring the fundamental role of \textbf{spatial locality} and cache-aware programming in optimizing high-performance computing kernels.
+\end{abstract}
+
+\hrule % Horizontal rule after abstract, as in the model file
+\vspace{0.3cm} % Spacing after hrule
+
+\pagenumbering{arabic}
+
+\section{Setup and Methodology}
+The experimental framework was designed for precision and reproducibility, ensuring stable, low-noise performance measurements.
+All tests were executed on a single \textbf{ROG G513RM} machine, featuring an \textbf{AMD Ryzen 7 6800H} processor (8 cores, 16 threads).
+The total runtime for the complete profiling pipeline (\texttt{make run\_all}) was approximately \textbf{3 hours}.
+The program was compiled into two distinct binaries to satisfy the specific requirements of the profiling tools.
+\subsection{Experimental Setup and Compiler Flags}
+The table below outlines the compiler configurations used for generating the two executable binaries for this assignment.
+\begin{table}[h]
+\centering
+\caption{Compiler and Binary Configuration}
+\label{tab:compiler_config}
+\begin{tabularx}{\textwidth}{l c c c X}
+\toprule
+\textbf{Binary} & \textbf{Opt.} & \textbf{Inst.} & \textbf{Target} & \textbf{Purpose} \\
+\midrule
+\texttt{...\_perf} & \texttt{-O2} & None & \texttt{build\_perf} & Low-overhead hardware counter sampling via \texttt{perf} for performance metric collection (IPC, Cache Misses).
+\\
+\texttt{...\_gprof} & \texttt{-O0} & \texttt{-pg} & \texttt{build\_gprof} & Time attribution to functions via call graph analysis using \texttt{gprof}.
+\texttt{-O0} is necessary for accurate function timing. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Automation and Profiling Strategy}
+The entire profiling pipeline is automated via the single command \texttt{make run\_all} calling \texttt{profile\_runner.py}.
+This Python script handles parameter sweeping, executing each configuration (\texttt{N}, \texttt{order}, \texttt{mode}) multiple times, collecting raw \texttt{gprof} and \texttt{perf} logs, and consolidating the mean results into \texttt{universal\_metrics.csv}.
+\section{Introduction}
+The efficiency of an application is fundamentally dictated by its interaction with system resources.
+Matrix multiplication, a cornerstone of scientific computing ($C=A \times B$), provides an excellent case study for analyzing resource utilization.
+This report documents the process of profiling and analyzing the provided C-based matrix multiplication kernel, focusing on two primary determinants of performance: the limiting resource (CPU vs. I/O) and the impact of memory access patterns on the hardware cache hierarchy.
+\section{Task 1: Baseline Profiling and Resource Boundness}
+The initial program execution was profiled in two baseline modes using the \texttt{ijk} loop order:
+\begin{itemize}
+    \item \textbf{CPU Mode}: Executes the full matrix multiplication ($O(N^3)$ arithmetic operations).
+    \item \textbf{I/O Mode}: Executes file I/O (matrix reading/writing)...
+\end{itemize}
+
+% ... (Body of the report with Task 2 and Task 3 results/tables) ...
+
+\section{Conclusion and Summary}
+The profiling effort successfully categorized the matrix multiplication workload based on resource boundness and evaluated the impact of memory access patterns. The baseline algorithm proved to be \textbf{CPU-bound} (high IPC of $\approx 3.82$) due to its computational intensity. The attempted I/O-bound transformation demonstrated a significant drop in IPC ($\approx 70.2\%$ drop from $\approx 3.82$ to $\approx 1.14$), which is the characteristic metric signature of a workload stalling on I/O. The analysis of loop orders (Task 3) revealed that the \textbf{\texttt{ikj} configuration provides the most efficient memory access pattern}, resulting in superior performance (fastest runtime, highest IPC) due to maximized spatial locality, leading to the fewest L1 D-Cache Load Misses. These findings underscore the critical importance of understanding and exploiting hardware architecture when developing high-performance computing software.
+
+\section{Submission Checklist and Reproduction Commands}
+
+\nThe successful completion of the profiling assignments required the generation of several artifacts, which are documented below.
+
+\begin{table}[h]
+\centering
+\caption{Submission Artifacts}
+\label{tab:submission_artifacts}
+\begin{tabularx}{\textwidth}{l C C}
+\toprule
+\textbf{Artifact} & \textbf{Files} & \textbf{Status} \\
+\midrule
+Script (Python/Bash) & \texttt{profile\_runner.py} / \texttt{plotter.py} & Complete \\
+C Code & \texttt{matrix\_multiplication.c} & Modified / Documented \\
+Profiling Data & \texttt{universal\_metrics.csv} / plots & Complete \\
+Documentation & \texttt{analysis\_report.pdf} & Complete \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\textbf{Command to Reproduce Results:} All experimental results, raw logs, and processed metrics can be generated and saved by running the single master command:
+
+\begin{verbatim}
+make run_all
+\end{verbatim}
+
+\end{document}

@@ -1,0 +1,7 @@
+16868956,,task-clock:u,16868956,100.00,0.961,CPUs utilized
+70897994,,cycles:u,13896861,82.00,4.203,GHz
+176968472,,instructions:u,13887254,82.00,2.50,insn per cycle
+32782679,,branches:u,13869101,82.00,1.943,G/sec
+564462,,branch-misses:u,13899838,82.00,1.72,of all branches
+274706,,L1-dcache-load-misses:u,14121433,83.00,,
+901,,dTLB-load-misses:u,14670293,86.00,,
