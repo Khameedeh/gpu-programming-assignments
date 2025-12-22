@@ -1,0 +1,6 @@
+Problem 1: Block-Based Image Coloring
+Image size: 1024x1024
+Test case 2: 32x32 threads per block
+Blocks: (32, 32), Threads per block: (32, 32)
+Kernel execution time: 1.585 ms
+Image saved as output_p1_test2.ppm

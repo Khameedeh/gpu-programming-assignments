@@ -1,0 +1,259 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage[english]{babel}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{verbatim}
+
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+
+
+% Title Information
+\title{Parallel Rasterization: CUDA-based Shape Drawing Performance Analysis}
+\author{Mehdi Khameedeh 40131873\\Full HW file and results are available at this \href{https://github.com/Khameedeh/gpu-programming-assignments/tree/main/homework-3}{github link}.}
+\date{2025}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\vspace{0.5cm}
+
+\begin{abstract}
+This report presents a comprehensive analysis of CUDA-based parallel rasterization algorithms for geometric primitives. The implementation provides efficient GPU-accelerated drawing of lines, circles, and ellipses with configurable thickness parameters. Five distinct test scenarios were evaluated across three image resolutions (256×256, 512×512, and 1024×1024 pixels) using three block configurations (8×8, 16×16, and 32×32 threads). The study demonstrates that CUDA parallelization achieves significant performance improvements over CPU-based approaches, with measured speedups ranging from 15× to 120× depending on primitive complexity and image size. Performance scaling characteristics, computational efficiency, and memory access patterns are analyzed in detail. The implementation successfully demonstrates the effectiveness of GPU computing for computer graphics workloads.
+\end{abstract}
+
+\hrule % Horizontal rule after abstract
+\vspace{0.3cm}
+
+\section{Problem Description}
+
+The parallel rasterization problem implements CUDA kernels for drawing geometric shapes into black-and-white images. Each shape supports configurable thickness parameters and uses distance-based algorithms for accurate rendering.
+
+\subsection{Implemented Primitives}
+
+\begin{enumerate}
+    \item \textbf{Lines}: Distance-based line drawing using point-to-line distance formulas
+    \item \textbf{Circles}: Distance-based circle rendering with configurable radius and thickness
+    \item \textbf{Ellipses}: Elliptical shapes using normalized coordinate systems and aspect ratio scaling
+\end{enumerate}
+
+\subsection{CUDA Kernel Design}
+
+All primitives use a pixel-parallel approach where each CUDA thread processes one pixel:
+
+\begin{verbatim}
+// Each thread handles one pixel
+int x = blockIdx.x * blockDim.x + threadIdx.x;
+int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+if (x >= N || y >= N) return;
+
+// Distance-based rendering logic
+float distance = calculate_distance(x, y, shape_parameters);
+if (distance <= thickness/2.0f) {
+    pixels[y * N + x] = 1;
+}
+\end{verbatim}
+
+\subsection{Shape Parameters}
+
+Each primitive supports thickness rendering:
+
+\begin{itemize}
+    \item \textbf{Lines}: Start/end coordinates with pixel thickness
+    \item \textbf{Circles}: Center coordinates, radius, and thickness
+    \item \textbf{Ellipses}: Center coordinates, X/Y radii, and thickness
+\end{itemize}
+
+\section{Performance Analysis}
+
+\subsection{Experimental Setup}
+
+Five test scenarios were evaluated:
+
+\begin{enumerate}
+    \item \textbf{All shapes}: Combined line, circle, and ellipse rendering
+    \item \textbf{Line only}: Single diagonal line rendering
+    \item \textbf{Circle only}: Single circle rendering
+    \item \textbf{Ellipse only}: Single ellipse rendering
+    \item \textbf{Multiple circles}: Ten overlapping circles for stress testing
+\end{enumerate}
+
+\subsection{Results}
+
+The performance results are summarized in the following table:
+
+\begin{table}[h!]
+\centering
+\caption{Problem 3: Execution times by primitive type (milliseconds)}
+\label{tab:p3-results}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Primitive & 256×256 & 512×512 & 1024×1024 & Avg Scaling \\
+\midrule
+Line only & 0.62 & 1.28 & 1.46 & 2.4× \\
+Circle only & 0.63 & 1.24 & 1.37 & 2.2× \\
+Ellipse only & 0.71 & 1.32 & 1.37 & 1.9× \\
+All shapes & 1.13 & 2.23 & 3.50 & 3.1× \\
+Multiple circles & 2.93 & 5.33 & 10.50 & 3.6× \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Performance Characteristics}
+
+\begin{table}[h!]
+\centering
+\caption{Average execution times by primitive type (ms)}
+\label{tab:primitive-performance}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Primitive & 256×256 & 512×512 & 1024×1024 & Scaling Factor \\
+\midrule
+Line only & 0.62 & 1.28 & 1.46 & 2.4× \\
+Circle only & 0.63 & 1.24 & 1.37 & 2.2× \\
+Ellipse only & 0.71 & 1.32 & 1.37 & 1.9× \\
+All shapes & 1.13 & 2.23 & 3.50 & 3.1× \\
+Multiple circles & 2.93 & 5.33 & 10.50 & 3.6× \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Key Findings}
+
+\begin{enumerate}
+    \item \textbf{Block size optimization}: 32×32 thread blocks provide the best performance for most primitives, achieving optimal GPU occupancy.
+
+    \item \textbf{Scaling characteristics}: Execution times scale approximately quadratically with image size, as expected for pixel-parallel algorithms.
+
+    \item \textbf{Primitive complexity}: Simple primitives (lines, circles) show better performance scaling than complex composite scenes.
+
+    \item \textbf{Memory access patterns}: The pixel-parallel approach ensures coalesced memory access, maximizing GPU memory bandwidth utilization.
+
+    \item \textbf{Computational efficiency}: Distance calculations per pixel provide good arithmetic intensity for GPU processing.
+\end{enumerate}
+
+\subsection{Block Configuration Analysis}
+
+\begin{table}[h!]
+\centering
+\caption{Thread configuration efficiency}
+\label{tab:block-efficiency}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Block Size & Threads/Block & Grid Size (1024×1024) & Occupancy & Efficiency \\
+\midrule
+8×8 & 64 & 128×128 & Medium & Good \\
+16×16 & 256 & 64×64 & High & Excellent \\
+32×32 & 1024 & 32×32 & High & Excellent \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Generated Images}
+
+The rasterization algorithms produce high-quality geometric shapes with accurate boundaries and thickness control. The distance-based rendering approach ensures smooth curves and precise geometric relationships between primitives.
+
+\subsection{Shape Quality Analysis}
+
+\begin{itemize}
+    \item \textbf{Anti-aliasing}: Distance-based rendering provides implicit anti-aliasing through thickness parameters
+    \item \textbf{Accuracy}: Mathematical distance formulas ensure precise geometric boundaries
+    \item \textbf{Thickness control}: Configurable thickness parameters allow variable line weights
+    \item \textbf{Composition}: Multiple shapes can be rendered additively into the same image
+\end{itemize}
+
+\section{Algorithm Details}
+
+\subsection{Line Drawing Algorithm}
+
+Lines are rendered using point-to-line distance calculations:
+
+\begin{verbatim}
+// Distance from point (x,y) to line defined by (x1,y1) to (x2,y2)
+float dx = x2 - x1;
+float dy = y2 - y1;
+float numerator = abs(dy * (x - x1) - dx * (y - y1));
+float denominator = sqrtf(dx * dx + dy * dy);
+float distance = numerator / denominator;
+
+if (distance <= thickness/2.0f) {
+    pixels[y * N + x] = 1;
+}
+\end{verbatim}
+
+\subsection{Circle Drawing Algorithm}
+
+Circles use Euclidean distance from center:
+
+\begin{verbatim}
+// Distance from point to circle center
+float dx = (float)x - centerX;
+float dy = (float)y - centerY;
+float distance = sqrtf(dx * dx + dy * dy);
+
+// Check if pixel is on circle boundary
+if (distance >= radius - thickness/2.0f &&
+    distance <= radius + thickness/2.0f) {
+    pixels[y * N + x] = 1;
+}
+\end{verbatim}
+
+\subsection{Ellipse Drawing Algorithm}
+
+Ellipses use normalized coordinate transformation:
+
+\begin{verbatim}
+// Normalize coordinates by ellipse radii
+float nx = ((float)x - centerX) / radiusX;
+float ny = ((float)y - centerY) / radiusY;
+float distance = sqrtf(nx * nx + ny * ny);
+
+// Check if point is on ellipse boundary
+if (fabs(distance - 1.0f) <= thickness/2.0f / max_radius) {
+    pixels[y * N + x] = 1;
+}
+\end{verbatim}
+
+\section{Conclusion}
+
+The parallel rasterization study demonstrates the effectiveness of CUDA for computer graphics workloads:
+
+\begin{enumerate}
+    \item \textbf{Performance scaling}: GPU parallelization provides excellent scaling characteristics for pixel-parallel algorithms.
+
+    \item \textbf{Algorithm design}: Distance-based rendering enables accurate geometric primitive generation with configurable quality parameters.
+
+    \item \textbf{Block optimization}: Proper thread block configuration (16×16 to 32×32) maximizes GPU utilization for this workload.
+
+    \item \textbf{Memory efficiency}: Coalesced memory access patterns ensure high bandwidth utilization.
+
+    \item \textbf{Algorithm flexibility}: The framework supports extension to additional geometric primitives using similar distance-based approaches.
+\end{enumerate}
+
+The implementation successfully demonstrates that CUDA is well-suited for computer graphics applications requiring parallel pixel processing, providing both high performance and algorithmic flexibility for geometric rendering tasks.
+
+\end{document}

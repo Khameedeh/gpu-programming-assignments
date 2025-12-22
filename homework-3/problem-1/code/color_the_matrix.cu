@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <cuda_runtime.h>
 #include "color_the_matrix.h"
 
@@ -38,7 +39,7 @@ void colorMatrixCUDA(Pixel* h_matrix, int N, dim3 blocks, dim3 threads) {
     size_t size = N * N * sizeof(Pixel);
 
     // Allocate device memory
-    cudaMalloc(&d_matrix, size);
+    cudaMalloc((void**)&d_matrix, size);
 
     // Copy input data to device (if needed)
     cudaMemcpy(d_matrix, h_matrix, size, cudaMemcpyHostToDevice);

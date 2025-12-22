@@ -1,0 +1,13 @@
+size,test_case,description,duration_ms,blocks_x,blocks_y,threads_x,threads_y
+256x256,0,1_thread_per_block,0.536,256,256,1,1
+256x256,1,16x16_threads,0.458,16,16,16,16
+256x256,2,32x32_threads,0.794,8,8,32,32
+256x256,3,8x8_threads,0.464,32,32,8,8
+512x512,0,1_thread_per_block,1.205,512,512,1,1
+512x512,1,16x16_threads,0.889,32,32,16,16
+512x512,2,32x32_threads,0.891,16,16,32,32
+512x512,3,8x8_threads,1.003,64,64,8,8
+1024x1024,0,1_thread_per_block,2.803,1024,1024,1,1
+1024x1024,1,16x16_threads,1.889,64,64,16,16
+1024x1024,2,32x32_threads,1.591,32,32,32,32
+1024x1024,3,8x8_threads,1.669,128,128,8,8

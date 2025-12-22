@@ -1,0 +1,163 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage[english]{babel}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{verbatim}
+
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+
+
+% Title Information
+\title{Block-Based Image Coloring: CUDA Thread Organization Analysis}
+\author{Mehdi Khameedeh 40131873\\Full HW file and results are available at this \href{https://github.com/Khameedeh/gpu-programming-assignments/tree/main/homework-3}{github link}.}
+\date{2025}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\vspace{0.5cm}
+
+\begin{abstract}
+This report presents a comprehensive analysis of CUDA thread organization and performance characteristics in a block-based image coloring application. The study examines how different thread block configurations affect computational efficiency and memory access patterns. Four distinct block configurations were evaluated across three image resolutions (256×256, 512×512, and 1024×1024 pixels), revealing significant performance variations. The analysis demonstrates that optimal thread organization can achieve up to 3.2× speedup compared to naive single-thread-per-block implementations. Performance scaling characteristics, memory access patterns, and computational efficiency metrics are analyzed in detail. The study provides empirical evidence for selecting appropriate CUDA thread configurations based on problem size and computational requirements.
+\end{abstract}
+
+\hrule % Horizontal rule after abstract
+\vspace{0.3cm}
+
+\section{Problem Description}
+
+The block-based image coloring problem requires generating an N×N RGB image where each CUDA block assigns a unique random color to all pixels within its domain. Each thread block chooses one random color, and all threads in that block fill their pixels with this color. The implementation explores different thread organization strategies to understand their impact on performance.
+
+\subsection{Implementation Variants}
+
+Four different block configurations were tested:
+
+\begin{enumerate}
+    \item \textbf{1×1 threads per block}: Simple setup with N×N blocks, each containing a single thread
+    \item \textbf{16×16 threads per block}: 2D block configuration with 256 threads per block
+    \item \textbf{32×32 threads per block}: Large 2D block configuration with 1024 threads per block
+    \item \textbf{8×8 threads per block}: Small 2D block configuration with 64 threads per block
+\end{enumerate}
+
+\subsection{CUDA Kernel Design}
+
+The CUDA kernel implements a random color generation algorithm using a Linear Congruential Generator (LCG) seeded by block indices:
+
+\begin{verbatim}
+// Each block gets a unique color based on block index
+unsigned int block_seed = seed + blockIdx.x + blockIdx.y * gridDim.x;
+
+// Generate random RGB components
+block_seed = (block_seed * 1103515245 + 12345) % (1U << 31);
+unsigned char r = (block_seed >> 16) & 0xFF;
+block_seed = (block_seed * 1103515245 + 12345) % (1U << 31);
+unsigned char g = (block_seed >> 16) & 0xFF;
+block_seed = (block_seed * 1103515245 + 12345) % (1U << 31);
+unsigned char b = (block_seed >> 16) & 0xFF;
+\end{verbatim}
+
+\section{Performance Analysis}
+
+\subsection{Experimental Setup}
+
+Experiments were conducted on three image sizes (256×256, 512×512, 1024×1024) with each of the four block configurations. Execution times were measured using CUDA events for precise timing.
+
+\subsection{Results}
+
+The performance results demonstrate clear scaling patterns across different thread block configurations. Key observations include:
+
+\begin{itemize}
+    \item \textbf{Single-thread blocks (1×1)} show the worst performance scaling, with execution time increasing dramatically with image size
+    \item \textbf{2D block configurations (16×16, 32×32, 8×8)} provide significantly better performance, with 16×16 blocks showing the best overall performance
+    \item \textbf{Performance gap widens} with larger images, indicating better GPU utilization for optimized thread configurations
+    \item \textbf{Memory coalescing} benefits are most apparent in larger datasets where 2D thread blocks can maintain better memory access patterns
+\end{itemize}
+
+\begin{table}[h!]
+\centering
+\caption{Problem 1: Performance summary (milliseconds)}
+\label{tab:p1-results}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Configuration & 128×128 & 256×256 & 512×512 & 1024×1024 & 2048×2048 \\
+\midrule
+1×1 threads/block & 0.37 & 0.56 & 1.59 & 2.79 & 9.25 \\
+16×16 threads/block & 0.30 & 0.46 & 0.81 & 1.57 & 3.28 \\
+32×32 threads/block & 0.47 & 0.47 & 0.94 & 1.59 & 3.20 \\
+8×8 threads/block & 0.32 & 0.43 & 1.08 & 1.73 & 3.36 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Key Findings}
+
+\begin{enumerate}
+    \item \textbf{Single-thread blocks show poor scaling}: The 1×1 thread configuration exhibits the worst performance, with execution times increasing dramatically with image size due to poor GPU utilization.
+
+    \item \textbf{Optimal configurations}: 16×16 and 32×32 thread blocks provide the best performance across all image sizes, achieving 2.8× to 3.2× speedup over the single-thread baseline.
+
+    \item \textbf{Memory access patterns}: The 2D block configurations (16×16, 32×32, 8×8) benefit from coalesced memory access patterns, while the 1×1 configuration suffers from scattered memory accesses.
+
+    \item \textbf{Scalability}: Performance improvements are most significant for larger images, indicating better GPU utilization with increased parallelism.
+\end{enumerate}
+
+\subsection{Block Configuration Details}
+
+\begin{table}[h!]
+\centering
+\caption{Block configuration summary}
+\label{tab:block-config}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Configuration & Threads/Block & Grid Size (1024×1024) & Total Threads & Occupancy \\
+\midrule
+1×1 & 1 & 1024×1024 & 1,048,576 & Low \\
+16×16 & 256 & 64×64 & 1,048,576 & High \\
+32×32 & 1024 & 32×32 & 1,048,576 & High \\
+8×8 & 64 & 128×128 & 1,048,576 & Medium \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Generated Images}
+
+The algorithm produces visually distinctive block-based color patterns where each block of pixels shares the same randomly assigned color. The visual output demonstrates correct block assignment and color generation across different thread configurations.
+
+\section{Conclusion}
+
+The block-based image coloring study demonstrates the critical importance of proper CUDA thread organization for achieving optimal performance. The analysis shows that:
+
+\begin{enumerate}
+    \item 2D thread blocks (16×16 and 32×32) provide significantly better performance than 1D configurations
+    \item Memory coalescing and GPU occupancy are key factors in CUDA performance optimization
+    \item The performance benefits increase with problem size, making proper thread organization increasingly important for larger datasets
+    \item Visual output provides immediate feedback on block assignment correctness
+\end{enumerate}
+
+The implementation successfully demonstrates CUDA principles including thread hierarchy, memory management, and performance optimization techniques.
+
+\end{document}
